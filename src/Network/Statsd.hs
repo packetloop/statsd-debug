@@ -13,12 +13,16 @@ data Metric = Metric MetricType Name Value Tags deriving Eq
 
 type EventTitle = String
 type EventText = String
-type EventTimeStamp = String
-type EventHost = String
-type EventAggregationKey = String
+newtype EventTimeStamp = EventTimeStamp String
+  deriving (Eq, Show)
+newtype EventHost = EventHost String
+  deriving (Eq, Show)
+newtype EventAggregationKey = EventAggregationKey String
+  deriving (Eq, Show)
 data EventPriority = Normal | Low
     deriving (Eq, Show)
-type EventSourceType = String
+newtype EventSourceType = EventSourceType String
+  deriving (Eq, Show)
 data EventAlert = Error | Warning | Info | Success
     deriving (Eq, Show)
 
@@ -26,14 +30,14 @@ data EventAlert = Error | Warning | Info | Success
 data Event = Event {
     eventTitle     :: EventTitle,
     eventText      :: EventText,
-    eventTimeStamp :: (Maybe EventTimeStamp),
+    eventTimeStamp :: Maybe EventTimeStamp,
     eventHost      :: Maybe EventHost,
-    aggregationKey :: Maybe EventAggregationKey,
-    priority       :: Maybe String,
-    -- priority       :: Maybe EventPriority,
-    sourceTypeName :: Maybe EventSourceType,
-    alertType      :: Maybe String,
-    -- alertType      :: Maybe EventAlert,
+    -- aggregationKey :: Maybe EventAggregationKey,
+    -- priority       :: Maybe String,
+    priority       :: Maybe EventPriority,
+    -- sourceTypeName :: Maybe EventSourceType,
+    -- alertType      :: Maybe String,
+    alertType      :: Maybe EventAlert,
     eventTags      :: Tags
 } deriving (Eq, Show)
 

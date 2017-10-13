@@ -23,7 +23,6 @@ executable statsd-server
                          parsec,
                          ParsecTools
   main-is:               Network/Statsd/Server.hs
-  -- main-is:               Network/Statsd/Main.hs
   other-modules:         Network.Statsd
                          Network.Statsd.Parser
                          Network.Statsd.Server
@@ -37,7 +36,7 @@ test-suite Specs
   Type: exitcode-stdio-1.0
   other-modules:         Network.Statsd
                          Network.Statsd.Parser
-                         Network.Statsd.Server  
+                         Network.Statsd.Server
   -- build-depends:         base ==4.6.*
   build-depends:         base
                        , Cabal >= 1.16.0
