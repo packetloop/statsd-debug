@@ -30,14 +30,12 @@ data EventAlert = Error | Warning | Info | Success
 data Event = Event {
     eventTitle     :: EventTitle,
     eventText      :: EventText,
-    eventTimeStamp :: Maybe EventTimeStamp,
+    eventTimeStamp :: EventTimeStamp,
     eventHost      :: Maybe EventHost,
-    -- aggregationKey :: Maybe EventAggregationKey,
-    -- priority       :: Maybe String,
-    priority       :: Maybe EventPriority,
-    -- sourceTypeName :: Maybe EventSourceType,
-    -- alertType      :: Maybe String,
-    alertType      :: Maybe EventAlert,
+    aggregationKey :: Maybe EventAggregationKey,
+    priority       :: EventPriority,
+    sourceTypeName :: Maybe EventSourceType,
+    alertType      :: EventAlert,
     eventTags      :: Tags
 } deriving (Eq, Show)
 

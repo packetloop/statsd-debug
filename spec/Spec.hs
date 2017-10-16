@@ -20,13 +20,14 @@ metricParse input = genericParse parseMetric input
 eventParse input = genericParse parseEvent input
 
 
+type TagList = [(String, String)]
 
-mockEvent1 :: [(String, String)] -> Event
-mockEvent1 tags = Event
-  -- "apoliceMan" "garbageMan" (Just "2233") (Just "2122") (Just "") (Just "normal") (Just "info") (Just "") (Map.fromList [("abad", "feeling")])
-  "apoliceMan" "garbageMan" (Just $ EventTimeStamp "2233") (Just $ EventHost "2122") (Just Normal) (Just Info) (Map.fromList tags)
-  -- "apoliceMan" "garbageMan" (Just "2233") (Just "2122") (Just Normal) (Just Info) (Map.fromList [("abad", "feeling")])
+mockEvent :: Maybe EventAggregationKey -> Maybe EventSourceType -> TagList -> Event
+mockEvent aggKey sourceType tags = Event
+  "apoliceMan" "garbageMan" (EventTimeStamp "2233") (Just $ EventHost "2122") aggKey Normal sourceType Info (Map.fromList tags)
 
+mockEventBase :: TagList -> Event
+mockEventBase tags = mockEvent Nothing Nothing tags
 
 main :: IO ()
 main = hspec $
@@ -49,9 +50,15 @@ main = hspec $
             it "parseAlertType should get a string of digits" $ do
                 (genericParse parseAlertType "|t:success") `shouldBe` Success
             describe "should parse a complete string into an event" $ do
+              describe "when missing a source type name field" $ do
+                it "should parse properly returning Nothing" $ do
+                  eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad:day,feeling:day" `shouldBe` mockEventBase [("abad", "day"), ("feeling", "day")]
+              describe "when an aggregation key is present" $ do
+                it "should parse properly into the Event" $ do
+                  eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|k:poopler|p:normal|t:info|#abad:day,feeling:day" `shouldBe` mockEvent (Just $ EventAggregationKey "poopler") Nothing [("abad", "day"), ("feeling", "day")]
               it "with key:value tags" $ do
-                eventParse "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad:day,feeling:day" `shouldBe` mockEvent1 [("abad", "day"), ("feeling", "day")]
+                eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|s:apple|t:info|#abad:day,feeling:day" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", "day"), ("feeling", "day")]
               it "with only key tags" $ do
-                eventParse "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad,feeling" `shouldBe` mockEvent1 [("abad", ""), ("feeling", "")]
+                eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|s:apple|t:info|#abad,feeling" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", ""), ("feeling", "")]
               it "with a mixture of key:value & key tags" $ do
-                eventParse "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad:day,feeling" `shouldBe` mockEvent1 [("abad", "day"), ("feeling", "")]
+                eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|s:apple|t:info|#abad:day,feeling" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", "day"), ("feeling", "")]

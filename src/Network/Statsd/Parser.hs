@@ -60,49 +60,56 @@ parseNumTuple = do
 parseEventText n = count n anyChar
 
 parseEventRest (a, b) = do
-    title <- parseEventText 10
+    title <- parseEventText a
     char '|'
-    text <- parseEventText 10
-    -- title <- count 10 anyChar
-    -- char '|'
-    -- text <- count 10 anyChar
-    timestamp <- parseTimestamp
-    host <- parseHost
-    priority <- parsePriority
-    alertType <- parseAlertType
+    text <- parseEventText b
+    timestamp <- option (EventTimeStamp "now") parseTimestamp
+    host <- optionMaybe parseHost
+    aggKey <- optionMaybe parseAggregationKey
+    priority <- option Normal parsePriority
+    sourceType <- optionMaybe parseSourceType
+    alertType <- option Info parseAlertType
     char '|'
     tags <- option Map.empty parseTags
-    -- tags <- parseTags
     return Event {
       eventTitle = title,
       eventText = text,
-      eventTimeStamp = Just timestamp,
-      eventHost = Just host,
-      -- aggregationKey = Just "",
-      priority = Just priority,
-      -- sourceTypeName = Just "",
-      alertType = Just $ alertType,
+      eventTimeStamp = timestamp,
+      eventHost = host,
+      aggregationKey = aggKey,
+      priority = priority,
+      sourceTypeName = sourceType,
+      alertType = alertType,
       eventTags = tags
     }
     -- return (titleLength, textLength)
 
--- parseBar = do
-
-parsePriority = do
-    string "|p:"
-    getPriority <$>choice [string "normal", string "low"]
-
-parseAlertType = do
-    string "|t:"
-    getAlert <$> choice [string "error", string "warning", string "info", string "success"]
-
-parseHost = do
-    string "|h:"
-    EventHost <$> count 4 digit
+-- | Optional Parsers/Fields
 
 parseTimestamp = do
-    string "|d:"
+    try $ string "|d:"
     EventTimeStamp <$> count 4 digit
+
+parseHost = do
+    try $ string "|h:"
+    EventHost <$> count 4 digit
+
+parseAggregationKey = do
+    try $ string "|k:"
+    EventAggregationKey <$> (many1 $ noneOf "#|\n")
+
+parsePriority = do
+    try $ string "|p:"
+    getPriority <$>choice [string "normal", string "low"]
+
+parseSourceType = do
+    try $ string "|s:"
+    EventSourceType <$> (many1 $ noneOf "#|\n")
+
+parseAlertType = do
+    try $ string "|t:"
+    getAlert <$> choice [string "error", string "warning", string "info", string "success"]
+
 
 -- parseName :: Parsec [Char] _
 -- parseName :: ParsecT [Char] _ Identity [Char]
