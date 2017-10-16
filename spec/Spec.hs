@@ -7,17 +7,18 @@ import           Test.Hspec
 import           Text.ParserCombinators.Parsec
 
 
-parseM input = case parseMetrics input of
-    Left _         -> error $ "failed to parse " ++ input
-    Right [metric] -> metric
-
-parseE input = case parseEvents input of
-    Left _         -> error $ "failed to parse " ++ input
-    Right [event] -> event
-
 parseSD input = case parseStats input of
     Left _         -> error $ "failed to parse " ++ input
     Right [stat] -> stat
+
+genericParse parser input = case (parse parser "(unknown)" input) of
+  Left _         -> error $ "failed to parse " ++ input
+  Right result -> result
+
+metricParse input = genericParse parseMetric input
+
+eventParse input = genericParse parseEvent input
+
 
 
 mockEvent1 :: [(String, String)] -> Event
@@ -32,34 +33,25 @@ main = hspec $
     describe "Network.Statsd.Parser" $ do
         describe "Metrics Parsing" $ do
             it "parses simple metrics" $ do
-                parseM "gas:0.5|g" `shouldBe` Metric Gauge "gas" 0.5 Map.empty
-                parseM "miles:1|c" `shouldBe` Metric Counter "miles" 1 Map.empty
-                parseM "shift:500|ms" `shouldBe` Metric Timer "shift" 500 Map.empty
+                metricParse "gas:0.5|g" `shouldBe`  Metric Gauge "gas" 0.5 Map.empty
+                metricParse "miles:1|c" `shouldBe` Metric Counter "miles" 1 Map.empty
+                metricParse "shift:500|ms" `shouldBe` Metric Timer "shift" 500 Map.empty
             it "parses tags" $ do
-                parseM "miles:1|c#gear:4" `shouldBe` Metric Counter "miles" 1 (Map.fromList [("gear", "4")])
+                metricParse "miles:1|c#gear:4" `shouldBe` Metric Counter "miles" 1 (Map.fromList [("gear", "4")])
 
         describe "Events Parsing" $ do
             it "parseEventLengths should grab numbers" $ do
-                (parse parseEventLengths "(unknown)" "{34,45}") `shouldBe` Right (34,45)
+                (genericParse parseEventLengths "{34,45}") `shouldBe` (34,45)
             it "parsePriority should get dataType" $ do
-                (parse parsePriority "(unknown)" "p:normal") `shouldBe` Right Normal
+                (genericParse parsePriority "|p:normal") `shouldBe` Normal
             it "parseHost should get a string of digits" $ do
-                (parse parseHost "(unknown)" "h:2122") `shouldBe` Right (EventHost "2122")
+                (genericParse parseHost "|h:2122") `shouldBe` (EventHost "2122")
             it "parseAlertType should get a string of digits" $ do
-                (parse parseAlertType "(unknown)" "t:success") `shouldBe` Right Success
-            -- it "basically parses stuff" $ do
-            --     parseEvents "_e{34,45}" `shouldBe` Right (34,45)
+                (genericParse parseAlertType "|t:success") `shouldBe` Success
             describe "should parse a complete string into an event" $ do
               it "with key:value tags" $ do
-              -- _e{title.length,text.length}:title|text|d:timestamp|h:hostname|p:priority|t:alert_type|#tag1,tag2
-                parseEvents "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad:day,feeling:day" `shouldBe` Right [mockEvent1 [("abad", "day"), ("feeling", "day")]]
+                eventParse "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad:day,feeling:day" `shouldBe` mockEvent1 [("abad", "day"), ("feeling", "day")]
               it "with only key tags" $ do
-              -- _e{title.length,text.length}:title|text|d:timestamp|h:hostname|p:priority|t:alert_type|#tag1,tag2
-                parseEvents "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad,feeling" `shouldBe` Right [mockEvent1 [("abad", ""), ("feeling", "")]]
+                eventParse "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad,feeling" `shouldBe` mockEvent1 [("abad", ""), ("feeling", "")]
               it "with a mixture of key:value & key tags" $ do
-              -- _e{title.length,text.length}:title|text|d:timestamp|h:hostname|p:priority|t:alert_type|#tag1,tag2
-                parseEvents "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad:day,feeling" `shouldBe` Right [mockEvent1 [("abad", "day"), ("feeling", "")]]
-
-        -- describe "text Parsing" $ do
-        --     it "should parse stuff" $ do
-        --         parse (parseTextSep 8 "eight le|") `shouldBe` "eight le"
+                eventParse "_e{34,45}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad:day,feeling" `shouldBe` mockEvent1 [("abad", "day"), ("feeling", "")]

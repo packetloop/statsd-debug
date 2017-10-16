@@ -22,39 +22,6 @@ parseLine = do
     optional $ char '\n'
     return result
 
-parseMetrics :: String -> Either ParseError [Metric]
-parseMetrics input = parse parseMetricString "(unknown)" input
-
-parseEvents :: String -> Either ParseError [Event]
--- parseEvents :: String -> Either ParseError (Integer, Integer)
-parseEvents input = parse parseEventString "(unknown)" input
-
--- GenParser Char st [Metric]
--- Creates a Parser that takes a
-parseMetricString :: GenParser Char st [Metric]
-parseMetricString = do
-    result <- many parseMetricLine
-    eof
-    return result
-
--- parseEventString :: GenParser Char st (Integer, Integer)
-parseEventString :: GenParser Char st [Event]
-parseEventString = do
-    -- result <- many parseLine
-    result <- many parseEventLine
-    eof
-    return result
-
-parseMetricLine = do
-    result <- parseMetric
-    optional $ char '\n'
-    return result
-
-parseEventLine = do
-    result <- parseEvent
-    optional $ char '\n'
-    return result
-
 parseMetric = do
     name <- parseName
     char ':'
@@ -62,9 +29,9 @@ parseMetric = do
     char '|'
     metricType <- parseType
     tags <- option Map.empty parseTags
+    -- tags <- option Map.empty parseTags
     return $ Metric metricType name value tags
 
--- parseEvent
 parseEvent = do
     string "_e"
     -- braces <- between (symbol "{") (symbol "}") parseEventLengths
@@ -99,16 +66,12 @@ parseEventRest (a, b) = do
     -- title <- count 10 anyChar
     -- char '|'
     -- text <- count 10 anyChar
-    char '|'
     timestamp <- parseTimestamp
-    char '|'
     host <- parseHost
-    char '|'
     priority <- parsePriority
-    char '|'
     alertType <- parseAlertType
     char '|'
-    tags <- option Map.empty parseBetterTags
+    tags <- option Map.empty parseTags
     -- tags <- parseTags
     return Event {
       eventTitle = title,
@@ -126,19 +89,19 @@ parseEventRest (a, b) = do
 -- parseBar = do
 
 parsePriority = do
-    string "p:"
+    string "|p:"
     getPriority <$>choice [string "normal", string "low"]
 
 parseAlertType = do
-    string "t:"
+    string "|t:"
     getAlert <$> choice [string "error", string "warning", string "info", string "success"]
 
 parseHost = do
-    string "h:"
+    string "|h:"
     EventHost <$> count 4 digit
 
 parseTimestamp = do
-    string "d:"
+    string "|d:"
     EventTimeStamp <$> count 4 digit
 
 -- parseName :: Parsec [Char] _
@@ -159,25 +122,8 @@ parseType = do
 
 parseTags = do
     char '#'
-    tags <- many1 parseTag
-    return (Map.fromList tags)
-
-parseBetterTags = do
-    char '#'
-    -- tags <- many1 parseTagWithoutValue
     tags <- many1 (try parseTagWithValue <|> parseTagWithoutValue)
-    -- tags <- (many1 parseTagWithValue) <|> (many1 parseTagWithoutValue)
-    -- tags <- many1 (parseTagWithValue <|> parseTagWithoutValue)
-    -- tags <- many1 (parseTagWithoutValue <|> parseTagWithValue)
     return (Map.fromList tags)
-
-parseTag :: GenParser Char st (String, String)
-parseTag = do
-    optional $ char ','
-    name <- many1 $ noneOf ":,\n"
-    char ':'
-    value <- many $ noneOf ",\n"
-    return (name, value)
 
 -- parseTagWithValue :: GenParser Char st (String, String)
 parseTagWithValue = do
@@ -192,19 +138,6 @@ parseTagWithoutValue = do
   optional $ char ','
   name <- many1 $ noneOf ":,\n"
   return (name, "")
-
-
-parseBetterTag :: GenParser Char st (String, String)
-parseBetterTag = do
-    optional $ char ','
-    name <- many1 $ noneOf ":,\n"
-    -- char ':'
-    -- value <- many $ noneOf ",\n"
-    val <- parseTagValue
-    -- case val of
-    --   (Left _) -> val
-    --   otherwise -> return (name, val)
-    return (name, val)
 
 parseTagValue :: GenParser Char st String
 parseTagValue = do
