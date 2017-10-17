@@ -40,6 +40,16 @@ main = hspec $
             it "parses tags" $ do
                 metricParse "miles:1|c#gear:4" `shouldBe` Metric Counter "miles" 1 (Map.fromList [("gear", "4")])
 
+        describe "Permutable Parsing" $ do
+          it "should permute 1 optional field properly" $ do
+            genericParse permutableEventFields "|h:2122" `shouldBe` (defaultTimestamp, Just $ EventHost "2122", Nothing, Normal, Nothing, Info)
+          it "should permute 2 optional fields properly" $ do
+            genericParse permutableEventFields "|h:2122|s:apples" `shouldBe` (defaultTimestamp, Just $ EventHost "2122", Nothing, Normal, Just $ EventSourceType "apples", Info)
+          it "should give the same result when 2 optional fields are presented in a different order" $ do
+            genericParse permutableEventFields "|s:apples|h:2122" `shouldBe` (defaultTimestamp, Just $ EventHost "2122", Nothing, Normal, Just $ EventSourceType "apples", Info)
+          it "should work with fields which have other default values" $ do
+            genericParse permutableEventFields "|s:apples|p:low|h:2122" `shouldBe` (defaultTimestamp, Just $ EventHost "2122", Nothing, Low, Just $ EventSourceType "apples", Info)
+
         describe "Events Parsing" $ do
             it "parseEventLengths should grab numbers" $ do
                 (genericParse parseEventLengths "{34,45}") `shouldBe` (34,45)

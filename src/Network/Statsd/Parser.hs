@@ -7,6 +7,7 @@ import qualified Data.Map                      as Map
 import           Network.Statsd
 import           Text.Parsec.Numbers
 import           Text.ParserCombinators.Parsec
+import           Text.Parsec.Perm
 
 parseStats :: String -> Either ParseError [StatsD]
 parseStats input = parse parseString "(unknown)" input
@@ -63,13 +64,7 @@ parseEventRest (a, b) = do
     title <- parseEventText a
     char '|'
     text <- parseEventText b
-    timestamp <- option (EventTimeStamp "now") parseTimestamp
-    host <- optionMaybe parseHost
-    aggKey <- optionMaybe parseAggregationKey
-    priority <- option Normal parsePriority
-    sourceType <- optionMaybe parseSourceType
-    alertType <- option Info parseAlertType
-    char '|'
+    (timestamp, host, aggKey, priority, sourceType, alertType) <- permutableEventFields
     tags <- option Map.empty parseTags
     return Event {
       eventTitle = title,
@@ -82,7 +77,20 @@ parseEventRest (a, b) = do
       alertType = alertType,
       eventTags = tags
     }
-    -- return (titleLength, textLength)
+
+-- | This is obviously shit - fix this...
+defaultTimestamp :: EventTimeStamp
+defaultTimestamp = EventTimeStamp "now"
+
+permutableEventFields = permute (tuple
+      <$?> (defaultTimestamp, parseTimestamp)
+      <|?> (Nothing, Just <$> parseHost)
+      <|?> (Nothing, Just <$> parseAggregationKey)
+      <|?> (Normal, parsePriority)
+      <|?> (Nothing, Just <$> parseSourceType)
+      <|?> (Info, parseAlertType)
+    ) where
+  tuple a b c d e f = (a, b, c, d, e, f)
 
 -- | Optional Parsers/Fields
 
