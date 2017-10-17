@@ -24,7 +24,7 @@ type TagList = [(String, String)]
 
 mockEvent :: Maybe EventAggregationKey -> Maybe EventSourceType -> TagList -> Event
 mockEvent aggKey sourceType tags = Event
-  "apoliceMan" "garbageMan" (EventTimeStamp "2233") (Just $ EventHost "2122") aggKey Normal sourceType Info (Map.fromList tags)
+  "apoliceMan" "garbageMan" (EventTimeStamp "1970-01-01T00:00:00Z") (Just $ EventHost "10.2.22.23") aggKey Normal sourceType Info (Map.fromList tags)
 
 mockEventBase :: TagList -> Event
 mockEventBase tags = mockEvent Nothing Nothing tags
@@ -42,13 +42,13 @@ main = hspec $
 
         describe "Permutable Parsing" $ do
           it "should permute 1 optional field properly" $ do
-            genericParse permutableEventFields "|h:2122" `shouldBe` (defaultTimestamp, Just $ EventHost "2122", Nothing, Normal, Nothing, Info)
+            genericParse permutableEventFields "|h:127.10.10.2" `shouldBe` (defaultTimestamp, Just $ EventHost "127.10.10.2", Nothing, Normal, Nothing, Info)
           it "should permute 2 optional fields properly" $ do
-            genericParse permutableEventFields "|h:2122|s:apples" `shouldBe` (defaultTimestamp, Just $ EventHost "2122", Nothing, Normal, Just $ EventSourceType "apples", Info)
+            genericParse permutableEventFields "|h:127.10.10.2|s:apples" `shouldBe` (defaultTimestamp, Just $ EventHost "127.10.10.2", Nothing, Normal, Just $ EventSourceType "apples", Info)
           it "should give the same result when 2 optional fields are presented in a different order" $ do
-            genericParse permutableEventFields "|s:apples|h:2122" `shouldBe` (defaultTimestamp, Just $ EventHost "2122", Nothing, Normal, Just $ EventSourceType "apples", Info)
+            genericParse permutableEventFields "|s:apples|h:127.10.10.2" `shouldBe` (defaultTimestamp, Just $ EventHost "127.10.10.2", Nothing, Normal, Just $ EventSourceType "apples", Info)
           it "should work with fields which have other default values" $ do
-            genericParse permutableEventFields "|s:apples|p:low|h:2122" `shouldBe` (defaultTimestamp, Just $ EventHost "2122", Nothing, Low, Just $ EventSourceType "apples", Info)
+            genericParse permutableEventFields "|s:apples|p:low|h:127.10.10.2" `shouldBe` (defaultTimestamp, Just $ EventHost "127.10.10.2", Nothing, Low, Just $ EventSourceType "apples", Info)
 
         describe "Events Parsing" $ do
             it "parseEventLengths should grab numbers" $ do
@@ -56,19 +56,19 @@ main = hspec $
             it "parsePriority should get dataType" $ do
                 (genericParse parsePriority "|p:normal") `shouldBe` Normal
             it "parseHost should get a string of digits" $ do
-                (genericParse parseHost "|h:2122") `shouldBe` (EventHost "2122")
+                (genericParse parseHost "|h:10.2.22.23") `shouldBe` (EventHost "10.2.22.23")
             it "parseAlertType should get a string of digits" $ do
                 (genericParse parseAlertType "|t:success") `shouldBe` Success
             describe "should parse a complete string into an event" $ do
               describe "when missing a source type name field" $ do
                 it "should parse properly returning Nothing" $ do
-                  eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|t:info|#abad:day,feeling:day" `shouldBe` mockEventBase [("abad", "day"), ("feeling", "day")]
+                  eventParse "_e{10,10}:apoliceMan|garbageMan|d:1970-01-01T00:00:00Z|h:10.2.22.23|p:normal|t:info|#abad:day,feeling:day" `shouldBe` mockEventBase [("abad", "day"), ("feeling", "day")]
               describe "when an aggregation key is present" $ do
                 it "should parse properly into the Event" $ do
-                  eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|k:poopler|p:normal|t:info|#abad:day,feeling:day" `shouldBe` mockEvent (Just $ EventAggregationKey "poopler") Nothing [("abad", "day"), ("feeling", "day")]
+                  eventParse "_e{10,10}:apoliceMan|garbageMan|d:1970-01-01T00:00:00Z|h:10.2.22.23|k:poopler|p:normal|t:info|#abad:day,feeling:day" `shouldBe` mockEvent (Just $ EventAggregationKey "poopler") Nothing [("abad", "day"), ("feeling", "day")]
               it "with key:value tags" $ do
-                eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|s:apple|t:info|#abad:day,feeling:day" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", "day"), ("feeling", "day")]
+                eventParse "_e{10,10}:apoliceMan|garbageMan|d:1970-01-01T00:00:00Z|h:10.2.22.23|p:normal|s:apple|t:info|#abad:day,feeling:day" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", "day"), ("feeling", "day")]
               it "with only key tags" $ do
-                eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|s:apple|t:info|#abad,feeling" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", ""), ("feeling", "")]
+                eventParse "_e{10,10}:apoliceMan|garbageMan|d:1970-01-01T00:00:00Z|h:10.2.22.23|p:normal|s:apple|t:info|#abad,feeling" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", ""), ("feeling", "")]
               it "with a mixture of key:value & key tags" $ do
-                eventParse "_e{10,10}:apoliceMan|garbageMan|d:2233|h:2122|p:normal|s:apple|t:info|#abad:day,feeling" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", "day"), ("feeling", "")]
+                eventParse "_e{10,10}:apoliceMan|garbageMan|d:1970-01-01T00:00:00Z|h:10.2.22.23|p:normal|s:apple|t:info|#abad:day,feeling" `shouldBe` mockEvent Nothing (Just $ EventSourceType "apple") [("abad", "day"), ("feeling", "")]

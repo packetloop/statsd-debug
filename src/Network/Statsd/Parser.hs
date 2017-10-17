@@ -79,8 +79,11 @@ parseEventRest (a, b) = do
     }
 
 -- | This is obviously shit - fix this...
+-- defaultTimestamp :: IO EventTimeStamp
+-- defaultTimestamp = EventTimeStamp getCurrentTime
 defaultTimestamp :: EventTimeStamp
-defaultTimestamp = EventTimeStamp "now"
+-- defaultTimestamp = EventTimeStamp "2017-10-17 06:42:07.702494 UTC"
+defaultTimestamp = EventTimeStamp "1970-01-01T00:00:00Z"
 
 permutableEventFields = permute (tuple
       <$?> (defaultTimestamp, parseTimestamp)
@@ -94,13 +97,26 @@ permutableEventFields = permute (tuple
 
 -- | Optional Parsers/Fields
 
+-- | Format:
+-- 1970-01-01T00:00:00Z
 parseTimestamp = do
     try $ string "|d:"
-    EventTimeStamp <$> count 4 digit
+    EventTimeStamp <$> many (digit <|> oneOf ['-', 'T', 'Z', ':'])
+      -- ++ string "-"
+      -- ++ count 2 digit
+      -- ++ string "-"
+      -- ++ count 2 digit
+      -- ++ string "T"
+      -- ++ count 2 digit
+      -- ++ string ":"
+      -- ++ count 2 digit
+      -- ++ string ":"
+      -- ++ count 2 digit
+      -- ++ string "Z")
 
 parseHost = do
     try $ string "|h:"
-    EventHost <$> count 4 digit
+    EventHost <$> many (digit <|> char '.')
 
 parseAggregationKey = do
     try $ string "|k:"
