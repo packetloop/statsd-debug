@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
 
--- module Network.Statsd.Parser (parseMetrics, parseEvents) where
 module Network.Statsd.Parser where
 
 import qualified Data.Map                      as Map
@@ -27,32 +26,21 @@ parseMetric = do
     name <- parseName
     char ':'
     value <- parseValue
-    char '|'
     metricType <- parseType
     tags <- option Map.empty parseTags
-    -- tags <- option Map.empty parseTags
     return $ Metric metricType name value tags
 
 parseEvent = do
     string "_e"
-    -- braces <- between (symbol "{") (symbol "}") parseEventLengths
-    -- return braces
     (a, b) <- parseEventLengths
     char ':'
     parseEventRest (a,b)
-
--- parseTextSep :: Int -> Parsec [Char] [Char]
--- parseTextSep n = do
---     sepped <- count n (char '|')
---     char '|'
---     return _
 
 parseEventLengths = do
   braces <- between (char '{') (char '}') parseNumTuple
   return braces
 
 parseNumTuple = do
-  -- many digit
   titleLength <- parseIntegral
   char ','
   textLength <- parseIntegral
@@ -78,11 +66,10 @@ parseEventRest (a, b) = do
       eventTags = tags
     }
 
--- | This is obviously shit - fix this...
+-- TODO: This is obviously shit - fix this...should get current time - e.g.
 -- defaultTimestamp :: IO EventTimeStamp
 -- defaultTimestamp = EventTimeStamp getCurrentTime
 defaultTimestamp :: EventTimeStamp
--- defaultTimestamp = EventTimeStamp "2017-10-17 06:42:07.702494 UTC"
 defaultTimestamp = EventTimeStamp "1970-01-01T00:00:00Z"
 
 permutableEventFields = permute (tuple
@@ -102,17 +89,6 @@ permutableEventFields = permute (tuple
 parseTimestamp = do
     try $ string "|d:"
     EventTimeStamp <$> many (digit <|> oneOf ['-', 'T', 'Z', ':'])
-      -- ++ string "-"
-      -- ++ count 2 digit
-      -- ++ string "-"
-      -- ++ count 2 digit
-      -- ++ string "T"
-      -- ++ count 2 digit
-      -- ++ string ":"
-      -- ++ count 2 digit
-      -- ++ string ":"
-      -- ++ count 2 digit
-      -- ++ string "Z")
 
 parseHost = do
     try $ string "|h:"
@@ -134,10 +110,6 @@ parseAlertType = do
     try $ string "|t:"
     getAlert <$> choice [string "error", string "warning", string "info", string "success"]
 
-
--- parseName :: Parsec [Char] _
--- parseName :: ParsecT [Char] _ Identity [Char]
--- parseName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity [Char]
 parseName = do
     name <- many1 $ noneOf ":\n"
     return name
@@ -147,24 +119,21 @@ parseValue = do
     return value
 
 parseType = do
+    char '|'
     metricType <- many1 $ noneOf "#|\n"
-    optional $ char '|'
     return $ mapType metricType
 
 parseTags = do
-    char '#'
+    string "|#"
     tags <- many1 (try parseTagWithValue <|> parseTagWithoutValue)
     return (Map.fromList tags)
 
--- parseTagWithValue :: GenParser Char st (String, String)
 parseTagWithValue = do
   optional $ char ','
   name <- many1 $ noneOf ":,\n"
   val <- parseTagValue
   return (name, val)
 
--- parseTagWithoutValue :: Text.ParserCombinators.Parsec Char st (String, String)
--- parseTagWithoutValue :: GenParser Char st (String, String)
 parseTagWithoutValue = do
   optional $ char ','
   name <- many1 $ noneOf ":,\n"

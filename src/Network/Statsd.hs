@@ -8,9 +8,13 @@ type Value = Double
 type Tags = Map.Map String String
 
 data StatsD = MetricD Metric | EventD Event
+  deriving (Eq, Show)
+
+-- | Metric Related Types
 data MetricType = Gauge | Counter | Timer | Histogram deriving (Show, Eq)
 data Metric = Metric MetricType Name Value Tags deriving Eq
 
+-- | Event Related Types
 type EventTitle = String
 type EventText = String
 newtype EventTimeStamp = EventTimeStamp String
@@ -26,7 +30,6 @@ newtype EventSourceType = EventSourceType String
 data EventAlert = Error | Warning | Info | Success
     deriving (Eq, Show)
 
--- data Event = Event EventTitle EventText (Maybe EventTimeStamp) (Maybe EventHost)
 data Event = Event {
     eventTitle     :: EventTitle,
     eventText      :: EventText,

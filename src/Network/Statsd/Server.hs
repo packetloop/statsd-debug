@@ -1,6 +1,3 @@
--- module Network.Statsd.Server where
--- module Main where
-
 import           Control.Concurrent
 import           Control.Concurrent.Chan
 import           Data.Either
@@ -27,7 +24,7 @@ networkServer chan = do
     addrinfos <- getAddrInfo (Just (defaultHints {addrFlags = [AI_PASSIVE]})) Nothing (Just port)
     let serveraddr = head addrinfos
     sock <- socket (addrFamily serveraddr) Datagram defaultProtocol
-    bindSocket sock (addrAddress serveraddr)
+    bind sock (addrAddress serveraddr)
     let handleMessage = do
             (msg, _, addr) <- recvFrom sock 1024
             case parseStats msg of
